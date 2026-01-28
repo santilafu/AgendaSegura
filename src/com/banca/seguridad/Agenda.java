@@ -1,9 +1,13 @@
 package com.banca.seguridad;
 
+import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
 
-public class Agenda {
+// ¡OJO! Debe ser Serializable para que GestorCifrado pueda procesarla
+public class Agenda implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     private List<Contacto> listaContactos;
 
@@ -19,6 +23,8 @@ public class Agenda {
         return listaContactos;
     }
 
-    // Aquí irían tus métodos de guardar/cargar con cifrado (AES/DES)
-    // que veremos en la implementación de seguridad completa.
+    // Método auxiliar para limpiar la agenda
+    public void vaciarAgenda() {
+        listaContactos.clear();
+    }
 }
