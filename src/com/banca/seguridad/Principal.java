@@ -6,97 +6,124 @@ import java.util.Scanner;
 public class Principal {
 
     public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
+        Scanner scannerInput = new Scanner(System.in); // Scanner solo para el login
 
-        // 1. Iniciamos seguridad y generamos la clave de esta sesión (La clave "buena")
-        GestorCifrado seguridad = new GestorCifrado();
-        SecretKey claveSesion = seguridad.generarClave();
+        System.out.println("=== 🏦 PORTAL DE BANCA SEGURA (UNIDAD 5) ===");
 
-        Agenda agenda = new Agenda();
-        boolean salir = false;
+        GestorFirma gestorIdentidad = new GestorFirma();
 
-        System.out.println("=== 🏦 SISTEMA BANCARIO SEGURO (AES-128) ===");
-        System.out.println("ℹ️  Nota: La clave de cifrado se ha generado en memoria.");
+        // Generamos los archivos necesarios la primera vez para que puedas probar
+        gestorIdentidad.generarFirmaDePrueba();
 
-        while (!salir) {
-            System.out.println("\n--- MENÚ DE OPERACIONES ---");
-            System.out.println("1. Añadir cliente (Memoria)");
-            System.out.println("2. Ver listado (Memoria)");
-            System.out.println("3. 💾 GUARDAR (Cifrar y volcar a disco)");
-            System.out.println("4. 📂 CARGAR (Leer de disco y descifrar)");
-            System.out.println("5. 🗑️ Vaciar memoria (Para probar carga limpia)");
-            System.out.println("6. 🏴‍☠️ SIMULAR ATAQUE (Intento de robo de datos)");
-            System.out.println("7. Salir");
-            System.out.print("> Elige opción: ");
 
-            String opcion = scanner.nextLine();
+        // PASO 1: SOLICITUD MANUAL DE CREDENCIALES
+        System.out.println("\n🔒 CONTROL DE ACCESO REQUERIDO");
+        System.out.println("Por favor, introduzca la ruta de su archivo de Firma Digital.");
+        System.out.print("> Archivo de firma: ");
 
-            switch (opcion) {
-                case "1":
-                    System.out.print("Nombre: "); String n = scanner.nextLine();
-                    System.out.print("Teléfono: "); String t = scanner.nextLine();
-                    System.out.print("Domicilio: "); String d = scanner.nextLine();
-                    System.out.print("CP: "); String cp = scanner.nextLine();
-                    System.out.print("Ciudad: "); String c = scanner.nextLine();
+        // El usuario escribe el nombre (ej: identidad.firma)
+        String rutaFirma = scannerInput.nextLine();
 
-                    agenda.anadirContacto(new Contacto(n, t, d, cp, c));
-                    System.out.println("✅ Cliente añadido a memoria.");
-                    break;
+        System.out.println("Analizando archivo '" + rutaFirma + "'...");
 
-                case "2":
-                    System.out.println("\n--- LISTA DE CLIENTES EN MEMORIA ---");
-                    if (agenda.getListaContactos().isEmpty()) System.out.println("(Lista vacía)");
-                    for (Contacto contacto : agenda.getListaContactos()) {
-                        System.out.println(contacto);
+        // Pasamos lo que ha escrito el usuario al verificador
+        boolean accesoPermitido = gestorIdentidad.verificarIdentidad(rutaFirma);
+
+        if (accesoPermitido) {
+            System.out.println("\n✅ IDENTIDAD CONFIRMADA.");
+            System.out.println("   Bienvenido, Operador de Banca.");
+            ejecutarMenuPrincipal(); // Entramos a la app
+        } else {
+            System.out.println("\n⛔ ACCESO DENEGADO.");
+            System.out.println("   La firma digital no es válida o no corresponde a un usuario autorizado.");
+            System.exit(403);
+        }
+    }
+
+            // EJERCICIO 6: GESTIÓN DE DATOS CIFRADOS (AES)
+            private static void ejecutarMenuPrincipal() {
+                Scanner scanner = new Scanner(System.in);
+
+                // Preparamos el cifrado AES para los datos (Agenda)
+                GestorCifrado seguridadDatos = new GestorCifrado();
+                SecretKey claveSesion = seguridadDatos.generarClave();
+
+                Agenda agenda = new Agenda();
+                boolean salir = false;
+
+                System.out.println("\n--- SISTEMA DE GESTIÓN DE CLIENTES (Cifrado AES-128) ---");
+
+                while (!salir) {
+                    System.out.println("\n--- MENÚ OPERATIVO ---");
+                    System.out.println("1. 📝 Añadir cliente (Memoria)");
+                    System.out.println("2. 👁️ Ver listado (Memoria)");
+                    System.out.println("3. 💾 GUARDAR (Cifrar a disco)");
+                    System.out.println("4. 📂 CARGAR (Descifrar de disco)");
+                    System.out.println("5. 🗑️ Vaciar memoria (Pruebas)");
+                    System.out.println("6. 🏴‍☠️ SIMULAR ATAQUE (Robo de datos AES)"); // ¡RECUPERADO!
+                    System.out.println("7. 🚪 Salir");
+                    System.out.print("> Seleccione opción: ");
+
+                    String opcion = scanner.nextLine();
+
+                    switch (opcion) {
+                        case "1":
+                            System.out.print("Nombre: "); String n = scanner.nextLine();
+                            System.out.print("Teléfono: "); String t = scanner.nextLine();
+                            System.out.print("Domicilio: "); String d = scanner.nextLine(); // Nuevos atributos
+                            System.out.print("CP: "); String cp = scanner.nextLine();
+                            System.out.print("Ciudad: "); String c = scanner.nextLine();
+                            agenda.anadirContacto(new Contacto(n, t, d, cp, c));
+                            System.out.println("   -> Cliente registrado en RAM.");
+                            break;
+
+                        case "2":
+                            System.out.println("\n--- LISTADO ---");
+                            if(agenda.getListaContactos().isEmpty()) System.out.println("(Vacío)");
+                            for(Contacto con : agenda.getListaContactos()) System.out.println(con);
+                            break;
+
+                        case "3":
+                            seguridadDatos.guardarAgenda(agenda, claveSesion);
+                            break;
+
+                        case "4":
+                            Agenda cargada = seguridadDatos.cargarAgenda(claveSesion);
+                            if(cargada != null) {
+                                agenda = cargada;
+                                System.out.println("   -> Base de datos descifrada y cargada.");
+                            }
+                            break;
+
+                        case "5":
+                            agenda.vaciarAgenda();
+                            System.out.println("   -> Memoria local borrada.");
+                            break;
+
+                        case "6":
+                            // Lógica del Ejercicio 6: Intento de descifrado con clave incorrecta
+                            System.out.println("\n--- 🚨 SIMULACIÓN DE ROBO DE ARCHIVOS ---");
+                            System.out.println("Escenario: Un atacante roba 'clientes_seguros.aes' e intenta abrirlo.");
+
+                            SecretKey claveHacker = seguridadDatos.generarClave(); // Clave distinta
+                            Agenda intentoRobo = seguridadDatos.cargarAgenda(claveHacker);
+
+                            if (intentoRobo == null) {
+                                System.out.println("🛡️ RESULTADO: El cifrado AES ha resistido.");
+                                System.out.println("   Java lanzó 'BadPaddingException' al no coincidir la clave.");
+                            } else {
+                                System.out.println("❌ FALLO: Se han leído datos (Imposible si AES funciona).");
+                            }
+                            break;
+
+                        case "7":
+                            salir = true;
+                            System.out.println("Cerrando sesión segura...");
+                            break;
+                        default:
+                            System.out.println("Opción no válida.");
                     }
-                    break;
-
-                case "3":
-                    seguridad.guardarAgenda(agenda, claveSesion);
-                    break;
-
-                case "4":
-                    Agenda cargada = seguridad.cargarAgenda(claveSesion);
-                    if (cargada != null) {
-                        agenda = cargada;
-                        System.out.println("📂 Datos recuperados y descifrados correctamente.");
-                    }
-                    break;
-
-                case "5":
-                    agenda.vaciarAgenda();
-                    System.out.println("⚠️ Memoria vaciada. La lista actual está en blanco.");
-                    break;
-
-                case "6":
-                    System.out.println("\n--- 🏴‍☠️ INICIANDO SIMULACIÓN DE ATAQUE ---");
-                    System.out.println("Escenario: Un atacante ha copiado el archivo 'clientes_seguros.aes'");
-                    System.out.println("Acción: El atacante intenta leerlo con su propia clave generada.");
-
-                    // 1. Generamos una clave FALSA (distinta a claveSesion)
-                    SecretKey claveAtacante = seguridad.generarClave();
-
-                    // 2. Intentamos descifrar con la clave falsa
-                    Agenda agendaRobada = seguridad.cargarAgenda(claveAtacante);
-
-                    // 3. Análisis del resultado
-                    if (agendaRobada == null) {
-                        System.out.println("🛡️ SEGURIDAD ROBUSTA: El sistema ha rechazado el descifrado.");
-                        System.out.println("   El archivo es ilegible sin la clave original.");
-                    } else {
-                        System.out.println("❌ ERROR CRÍTICO: Se ha podido leer el archivo (esto no debería pasar).");
-                    }
-                    break;
-
-                case "7":
-                    salir = true;
-                    System.out.println("Cerrando sistema...");
-                    break;
-
-                default:
-                    System.out.println("Opción no válida.");
+                }
+                scanner.close();
             }
         }
-        scanner.close();
-    }
-}
